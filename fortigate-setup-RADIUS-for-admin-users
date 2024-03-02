@@ -1,0 +1,34 @@
+# Adding the RADIUS server 
+config user radius
+    edit "MEANINGFUL_NAME_HERE"
+    # Aim this at RADIUS server
+    set server "RADIUS_SERVER_IP_HERE"
+    # Update secret as needed
+    set secret "RADIUS_SECRET_HERE"
+    # Tweak auth-type algo below if needed
+    set auth-type ms_chap_v2
+    # Set source-ip below as 
+    set source-ip 10.8.254.1
+    next
+end
+
+# Add the user group
+config user group
+    edit "Remote Users via RADIUS"
+    set member "MEANINGFUL_NAME_HERE"
+    next
+end
+
+# Add the user(s)
+config system admin
+    # Change "user.name" below -- this must match RADIUS username (in AD environments this is typically the sAMAccountName)
+    edit "user.name"
+        set remote-auth enable
+        # Strongly recommend setting a "Trusted Host" IP; Also, Make sure ip6-trusthosts is set, or else it defaults to ::/0
+        set trusthost1 192.168.1.50 255.255.255.255
+        set ip6-trusthost1 aaaa:bbbb:cccc:dddd::/64
+        set accprofile "super_admin"
+        set vdom "root"
+        set remote-group "Remote Users via RADIUS"
+    next
+end
