@@ -1,0 +1,58 @@
+# VPN Setup Cmds for FortiClient IPSEC VPN
+# With RADIUS auth
+# Optimised for performance, ~200 mbps achievable. 
+# Split type - only traffic that needs to go over the tunnel is routed over the tunnel
+
+# First Setup an address object, this will be the destination(s) for the split tunnel
+config firewall addrgrp
+    edit "IPSEC_RemAcc_VPN_AllowedDestinations"
+        set member "allowed.range1" "allowed.range2" # this should be a list of ranges that are accessible to remote users.
+    next
+end
+
+# Phase1 config
+config vpn ipsec phase1-interface
+    edit "RemAcc-IPsec"
+        set type dynamic
+        set interface "WAN" # change this to suit your env
+        set ike-version 2
+        set peertype any
+        set net-device disable
+        set mode-cfg enable
+        set ipv4-dns-server1 10.10.10.10 # change this to suit your env
+        set proposal aes128-sha256
+        set dpd on-idle
+        set dhgrp 21
+        set eap enable
+        set eap-identity send-request
+        set authusrgrp "VPN_RADIUS" # This is the name of the RADIUS user group - adjust for your environment - note, must support MS-CHAP-V2
+        set ipv4-start-ip 10.212.134.128 # change this (optional)
+        set ipv4-end-ip 10.212.134.254 # change this (optional)
+        set ipv4-split-include "IPSEC_RemAcc_VPN_AllowedDestinations"
+        set dpd-retryinterval 60
+        set psksecret Correct-Horse-Battery-Staple # Change this
+    next
+end
+
+# Phase2 config
+config vpn ipsec phase2-interface
+    edit "RemAcc-IPsec"
+        set phase1name "RemAcc-IPsec"
+        set proposal aes128-sha256
+        set pfs disable
+    next
+end
+
+# Fw rule - adjust to suit your env.
+config firewall policy
+    edit 0
+        set name "vpn_RemAcc-IPSEC -> Inbound"
+        set srcintf "RemAcc-IPsec"
+        set dstintf "LAN_TRUSTED"
+        set action accept
+        set srcaddr "all"
+        set dstaddr "LAN_TRUSTED_RANGE"
+        set schedule "always"
+        set service "ALL"
+    next
+end
